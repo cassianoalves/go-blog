@@ -3,6 +3,7 @@ package presentation
 import (
 	"fmt"
 	"goBlog/domain"
+	"io"
 	"net/http"
 )
 
@@ -21,8 +22,30 @@ type PostController struct {
 	Service domain.IPostService
 }
 
+func closeBodyReader() func(Body io.ReadCloser) {
+	return func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println("Error closing request reader")
+		}
+	}
+}
+
 func (pc *PostController) CreatePost(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("CreatePost")
+	defer closeBodyReader()(r.Body)
+
+	// TODO Validate
+	// w.WriteHeader(http.StatusUnprocessableEntity)
+
+	newPost := domain.Post{}
+	id, err := pc.Service.Create(newPost)
+
+	if err != nil {
+		BuildError(err, w, http.StatusUnprocessableEntity)
+	}
+
+	BuildCreateResponse(w, r, id)
+
 }
 
 func GetAllPosts(w http.ResponseWriter, r *http.Request) {

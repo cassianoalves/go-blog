@@ -7,6 +7,7 @@ import (
 )
 
 type Post struct {
+	Id        int    `json:"id,omitempty"`
 	Title     string `json:"title,omitempty"`
 	Content   string `json:"content,omitempty"`
 	Author    string `json:"author,omitempty"`
@@ -22,13 +23,17 @@ func (p Post) ToJsonReader() io.Reader {
 	return bytes.NewReader(b)
 }
 
+func (p Post) IsValid() bool {
+	return true // TODO
+}
+
 type IPostService interface {
-	Validate() bool
+	Create(post Post) (int, error)
 }
 
 type PostService struct{}
 
-func (p PostService) Validate() bool {
+func (p PostService) Create(post Post) (int, error) {
 	//TODO implement me
 	panic("implement me")
 }

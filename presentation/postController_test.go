@@ -8,17 +8,25 @@ import (
 	"testing"
 )
 
-type MockService struct {
-	validate bool
+type spy struct {
+	callCounter *int
 }
 
-func (m MockService) Validate() bool {
-	return m.validate
+type MockService struct {
+	id  int
+	err error
+}
+
+func (m MockService) Create(post domain.Post) (int, error) {
+	return m.id, m.err
 }
 
 func TestGetPost(t *testing.T) {
 	a := assert.New(t)
-	mockService := &MockService{}
+	mockService := &MockService{
+		123,
+		nil,
+	}
 	controller := &PostController{mockService}
 
 	postIn := domain.Post{
@@ -27,32 +35,14 @@ func TestGetPost(t *testing.T) {
 		Content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
 	}
 
-	r, _ := http.NewRequest(http.MethodPost, "/posts", postIn.ToJsonReader())
+	r, _ := http.NewRequest(http.MethodPost, "https://service.host/posts", postIn.ToJsonReader())
 	w := httptest.NewRecorder()
 
 	controller.CreatePost(w, r)
 
-	a.Equal(w.Body.Len(), 0)
-	a.Equal(w.Code, http.StatusCreated)
-
-}
-
-func TestGetPost1(t *testing.T) {
-	type args struct {
-		w http.ResponseWriter
-		r *http.Request
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			GetPost(tt.args.w, tt.args.r)
-		})
-	}
+	a.Equal(0, w.Body.Len())
+	a.Equal(http.StatusCreated, w.Code)
+	a.Equal("https://service.host/posts/123", w.Header().Get("Location"))
 }
 
 /*
