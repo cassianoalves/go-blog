@@ -1,6 +1,8 @@
 package presentation
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"goBlog/domain"
 	"io"
@@ -34,18 +36,25 @@ func closeBodyReader() func(Body io.ReadCloser) {
 func (pc *PostController) CreatePost(w http.ResponseWriter, r *http.Request) {
 	defer closeBodyReader()(r.Body)
 
-	// TODO Validate
-	// w.WriteHeader(http.StatusUnprocessableEntity)
-
 	newPost := domain.Post{}
-	id, err := pc.Service.Create(newPost)
-
+	err := json.NewDecoder(r.Body).Decode(&newPost)
 	if err != nil {
 		BuildError(err, w, http.StatusUnprocessableEntity)
+		return
+	}
+
+	if !newPost.IsValid() {
+		BuildError(errors.New("invalid input data"), w, http.StatusUnprocessableEntity)
+		return
+	}
+
+	id, err := pc.Service.Create(newPost)
+	if err != nil {
+		BuildError(err, w, http.StatusUnprocessableEntity)
+		return
 	}
 
 	BuildCreateResponse(w, r, id)
-
 }
 
 func GetAllPosts(w http.ResponseWriter, r *http.Request) {

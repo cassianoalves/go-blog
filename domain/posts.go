@@ -24,7 +24,7 @@ func (p Post) ToJsonReader() io.Reader {
 }
 
 func (p Post) IsValid() bool {
-	return true // TODO
+	return len(p.Title) > 0 && len(p.Content) > 0 && len(p.Author) > 0
 }
 
 type IPostService interface {

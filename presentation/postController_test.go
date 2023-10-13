@@ -1,6 +1,7 @@
 package presentation
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"goBlog/domain"
 	"net/http"
@@ -8,25 +9,28 @@ import (
 	"testing"
 )
 
-type spy struct {
-	callCounter *int
-}
-
 type MockService struct {
-	id  int
-	err error
+	calls              int
+	createReturnsId    int
+	createReturnsError error
+	createArg          domain.Post
 }
 
-func (m MockService) Create(post domain.Post) (int, error) {
-	return m.id, m.err
+func (m *MockService) Create(post domain.Post) (int, error) {
+	m.createArg = post
+	m.calls++
+	return m.createReturnsId, m.createReturnsError
+}
+func (m MockService) verifyCreate(calls int, a *assert.Assertions) {
+	a.Equal(calls, m.calls, "Create expected %d calls but received %d", calls, m.calls)
+}
+func (m MockService) checkArgCreate(arg domain.Post, a *assert.Assertions) {
+	a.Equal(arg, m.createArg, "Create expected argument doesn't match", arg, m.createArg)
 }
 
-func TestGetPost(t *testing.T) {
+func TestGetPostShouldReturnOkAndLocationWithReference(t *testing.T) {
 	a := assert.New(t)
-	mockService := &MockService{
-		123,
-		nil,
-	}
+	mockService := &MockService{createReturnsId: 123}
 	controller := &PostController{mockService}
 
 	postIn := domain.Post{
@@ -43,6 +47,51 @@ func TestGetPost(t *testing.T) {
 	a.Equal(0, w.Body.Len())
 	a.Equal(http.StatusCreated, w.Code)
 	a.Equal("https://service.host/posts/123", w.Header().Get("Location"))
+	mockService.verifyCreate(1, a)
+	mockService.checkArgCreate(postIn, a)
+}
+
+func TestGetPostShouldReturnError(t *testing.T) {
+	a := assert.New(t)
+	mockService := &MockService{createReturnsError: errors.New("some creation error")}
+	controller := &PostController{mockService}
+
+	postIn := domain.Post{
+		Title:   "Some Subject",
+		Author:  "John Smith",
+		Content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+	}
+
+	r, _ := http.NewRequest(http.MethodPost, "https://service.host/posts", postIn.ToJsonReader())
+	w := httptest.NewRecorder()
+
+	controller.CreatePost(w, r)
+
+	a.Equal(35, w.Body.Len())
+	a.JSONEq("{\"error_msg\":\"some creation error\"}", w.Body.String())
+	a.Equal(http.StatusUnprocessableEntity, w.Code)
+	a.Empty(w.Header().Get("Location"))
+}
+
+func TestGetPostShouldReturnInvalidDataError(t *testing.T) {
+	a := assert.New(t)
+	mockService := &MockService{}
+	controller := &PostController{mockService}
+
+	postIn := domain.Post{
+		Title:   "Some Subject",
+		Content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+	}
+
+	r, _ := http.NewRequest(http.MethodPost, "https://service.host/posts", postIn.ToJsonReader())
+	w := httptest.NewRecorder()
+
+	controller.CreatePost(w, r)
+
+	a.Equal(34, w.Body.Len())
+	a.JSONEq("{\"error_msg\":\"invalid input data\"}", w.Body.String())
+	a.Equal(http.StatusUnprocessableEntity, w.Code)
+	a.Empty(w.Header().Get("Location"))
 }
 
 /*
