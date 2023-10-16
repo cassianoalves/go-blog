@@ -30,9 +30,9 @@ func BuildError(err error, w http.ResponseWriter, httpStatus int) {
 	}
 }
 
-func BuildCreateResponse(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusCreated)
-	w.Header().Add("Location",
-		fmt.Sprintf("%s/%d", r.URL, id),
+func BuildCreateResponse(w http.ResponseWriter, r *http.Request, id string) {
+	w.Header().Set("Location",
+		fmt.Sprintf("%s/%s", r.URL, id),
 	)
+	w.WriteHeader(http.StatusCreated)
 }

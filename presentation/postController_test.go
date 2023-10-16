@@ -10,22 +10,28 @@ import (
 )
 
 type MockService struct {
-	calls              int
+	calls              *int
 	createReturnsId    int
 	createReturnsError error
-	createArg          domain.Post
+	createArg          *domain.Post
 }
 
-func (m *MockService) Create(post domain.Post) (int, error) {
-	m.createArg = post
-	m.calls++
+func (m MockService) Create(post domain.Post) (int, error) {
+	if m.createArg == nil {
+		*m.createArg = post
+	}
+
+	if m.calls != nil {
+		*m.calls++
+	}
 	return m.createReturnsId, m.createReturnsError
 }
+
 func (m MockService) verifyCreate(calls int, a *assert.Assertions) {
-	a.Equal(calls, m.calls, "Create expected %d calls but received %d", calls, m.calls)
+	a.Equal(calls, *m.calls, "Create expected %d calls but received %d", calls, *m.calls)
 }
 func (m MockService) checkArgCreate(arg domain.Post, a *assert.Assertions) {
-	a.Equal(arg, m.createArg, "Create expected argument doesn't match", arg, m.createArg)
+	a.Equal(arg, *m.createArg, "Create expected argument doesn't match", arg, *m.createArg)
 }
 
 func TestGetPostShouldReturnOkAndLocationWithReference(t *testing.T) {
