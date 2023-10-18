@@ -48,7 +48,8 @@ func (pc *PostController) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := pc.Service.Create(newPost)
+	user := r.Context().Value("user").(*User)
+	id, err := pc.Service.Create(newPost, user.name)
 	if err != nil {
 		BuildError(err, w, http.StatusUnprocessableEntity)
 		return

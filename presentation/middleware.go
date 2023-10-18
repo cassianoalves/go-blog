@@ -15,6 +15,10 @@ func SetupMiddleware(router *mux.Router) {
 			next.ServeHTTP(w, r)
 		})
 	})
+
+	// Check Auth
+	router.Use(AuthenticationHandler())
+
 }
 
 type BlogError struct {
